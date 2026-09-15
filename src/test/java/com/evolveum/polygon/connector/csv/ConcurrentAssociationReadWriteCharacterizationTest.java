@@ -2,7 +2,6 @@ package com.evolveum.polygon.connector.csv;
 
 import com.evolveum.polygon.connector.csv.util.AssociationCharacter;
 import com.evolveum.polygon.connector.csv.util.AssociationHolder;
-import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.AttributeBuilder;
 import org.identityconnectors.framework.common.objects.ConnectorObjectBuilder;
@@ -24,19 +23,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Characterizes the Windows file-handle conflict between a managed-association search
- * that is still publishing results and an overlapping attribute-value update.
- *
- * This intentionally records the current behavior before a production fix is applied.
+ * Regression coverage for the Windows file-handle conflict between a managed-association
+ * search that is still publishing results and an overlapping attribute-value update.
  */
 public class ConcurrentAssociationReadWriteCharacterizationTest {
 
     private static final ObjectClass GROUP = new ObjectClass("group");
 
     @Test
-    public void managedAssociationSearchCanKeepSourceFileOpenWhileRemoveStarts() throws Exception {
+    public void managedAssociationSearchReleasesSourceFileBeforeRemoveStarts() throws Exception {
         if (!System.getProperty("os.name").toLowerCase().contains("win")) {
-            throw new SkipException("Windows-specific file replacement characterization");
+            throw new SkipException("Windows-specific file replacement regression test");
         }
 
         Path path = Path.of("target", "concurrent-association-read-write.csv");
@@ -65,7 +62,7 @@ public class ConcurrentAssociationReadWriteCharacterizationTest {
             } catch (Throwable t) {
                 searchFailure.set(t);
             }
-        }, "csv-characterization-search");
+        }, "csv-regression-search");
 
         searchThread.start();
         Assert.assertTrue(callbackEntered.await(10, TimeUnit.SECONDS),
@@ -79,8 +76,9 @@ public class ConcurrentAssociationReadWriteCharacterizationTest {
         Set<Attribute> attributes = Set.of(AttributeBuilder.build("group", reference));
 
         try {
-            Assert.expectThrows(ConnectorIOException.class,
-                    () -> handler.removeAttributeValues(GROUP, new Uid("2"), attributes, null));
+            Uid result = handler.removeAttributeValues(GROUP, new Uid("2"), attributes, null);
+            Assert.assertEquals(result, new Uid("2"));
+            Assert.assertEquals(Files.readString(path), "id;memberOf\r\n1;\r\n2;\r\n3;\r\n");
         } finally {
             releaseCallback.countDown();
             searchThread.join(10_000);
