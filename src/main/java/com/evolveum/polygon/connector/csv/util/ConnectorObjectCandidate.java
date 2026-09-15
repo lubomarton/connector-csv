@@ -4,8 +4,11 @@ import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ConnectorObjectCandidate {
+
+    private static final AtomicLong CONSTRUCTION_COUNT = new AtomicLong();
 
     private final ConnectorObjectId id;
     private ConnectorObjectBuilder candidateBuilder;
@@ -25,12 +28,21 @@ public class ConnectorObjectCandidate {
 
     public ConnectorObjectCandidate(ConnectorObjectId id, ConnectorObjectBuilder candidateBuilder, Set<ConnectorObjectId> associatedObjectIds,
                                     Set<ConnectorObjectId> subjectIdsToBeProcessed, Set<String> referenceNames, String nameAssocAttrDirect) {
+        CONSTRUCTION_COUNT.incrementAndGet();
         this.id = id;
         this.candidateBuilder = candidateBuilder;
         this.objectIdsToBeProcessed = associatedObjectIds;
         this.subjectIdsToBeProcessed = subjectIdsToBeProcessed;
         this.referenceNames = referenceNames;
         this.nameAssocAttrDirect = nameAssocAttrDirect;
+    }
+
+    public static void resetConstructionCount() {
+        CONSTRUCTION_COUNT.set(0);
+    }
+
+    public static long getConstructionCount() {
+        return CONSTRUCTION_COUNT.get();
     }
 
     public void evaluateDependencies() {
