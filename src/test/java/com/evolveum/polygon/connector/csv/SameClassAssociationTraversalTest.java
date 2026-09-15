@@ -61,6 +61,44 @@ public class SameClassAssociationTraversalTest {
                 "id;memberOf\r\n4;3\r\n3;2\r\n2;1\r\n1;\r\n", 4, "reverse");
     }
 
+    @Test
+    public void measuresSparseSameClassReferenceAcrossUnrelatedRows() throws Exception {
+        int records = 100;
+        StringBuilder content = new StringBuilder("id;memberOf\r\n");
+        content.append("1;\r\n");
+        content.append("2;1\r\n");
+        for (int id = 3; id <= records; id++) {
+            content.append(id).append(";\r\n");
+        }
+
+        Path path = Path.of("target", "same-class-sparse-100.csv");
+        Files.createDirectories(path.getParent());
+        Files.writeString(path, content.toString());
+
+        ObjectClassHandler handler = handler(path);
+        List<ConnectorObject> results = new ArrayList<>();
+        ConnectorObjectCandidate.resetConstructionCount();
+        handler.executeQuery(GROUP, null, object -> {
+            results.add(object);
+            return true;
+        }, null);
+
+        long candidateConstructions = ConnectorObjectCandidate.getConstructionCount();
+        long extraCandidateConstructions = candidateConstructions - records;
+        double fullPassEquivalents = (double) candidateConstructions / records;
+
+        System.out.printf(
+                "SAME_CLASS_SPARSE_WORK records=%d associationEdges=1 candidateConstructions=%d extraCandidateConstructions=%d fullPassEquivalents=%.2f%n",
+                records, candidateConstructions, extraCandidateConstructions, fullPassEquivalents);
+
+        Assert.assertEquals(results.size(), records);
+        assertNoParent(results, "1");
+        assertParent(results, "2", "1");
+        assertNoParent(results, "100");
+        Assert.assertTrue(candidateConstructions >= records,
+                "Candidate construction count must include at least the initial CSV pass");
+    }
+
     private void assertChainResolved(String fileName, String content, int levels, String order) throws Exception {
         Path path = Path.of("target", fileName);
         Files.createDirectories(path.getParent());
