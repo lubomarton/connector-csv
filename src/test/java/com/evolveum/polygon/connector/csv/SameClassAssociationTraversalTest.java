@@ -23,18 +23,42 @@ public class SameClassAssociationTraversalTest {
     private static final ObjectClass GROUP = new ObjectClass("group");
 
     @Test
+    public void resolvesTwoLevelSameClassChainInForwardOrder() throws Exception {
+        assertChainResolved("same-class-chain-two-forward.csv",
+                "id;memberOf\r\n1;\r\n2;1\r\n", 2);
+    }
+
+    @Test
+    public void resolvesTwoLevelSameClassChainInReverseOrder() throws Exception {
+        assertChainResolved("same-class-chain-two-reverse.csv",
+                "id;memberOf\r\n2;1\r\n1;\r\n", 2);
+    }
+
+    @Test
+    public void resolvesThreeLevelSameClassChainInForwardOrder() throws Exception {
+        assertChainResolved("same-class-chain-three-forward.csv",
+                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n", 3);
+    }
+
+    @Test
+    public void resolvesThreeLevelSameClassChainInReverseOrder() throws Exception {
+        assertChainResolved("same-class-chain-three-reverse.csv",
+                "id;memberOf\r\n3;2\r\n2;1\r\n1;\r\n", 3);
+    }
+
+    @Test
     public void resolvesFourLevelSameClassChainInForwardOrder() throws Exception {
         assertChainResolved("same-class-chain-forward.csv",
-                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n4;3\r\n");
+                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n4;3\r\n", 4);
     }
 
     @Test
     public void resolvesFourLevelSameClassChainInReverseOrder() throws Exception {
         assertChainResolved("same-class-chain-reverse.csv",
-                "id;memberOf\r\n4;3\r\n3;2\r\n2;1\r\n1;\r\n");
+                "id;memberOf\r\n4;3\r\n3;2\r\n2;1\r\n1;\r\n", 4);
     }
 
-    private void assertChainResolved(String fileName, String content) throws Exception {
+    private void assertChainResolved(String fileName, String content, int length) throws Exception {
         Path path = Path.of("target", fileName);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content);
@@ -46,11 +70,11 @@ public class SameClassAssociationTraversalTest {
             return true;
         }, null);
 
-        Assert.assertEquals(results.size(), 4);
+        Assert.assertEquals(results.size(), length);
         assertNoParent(results, "1");
-        assertParent(results, "2", "1");
-        assertParent(results, "3", "2");
-        assertParent(results, "4", "3");
+        for (int i = 2; i <= length; i++) {
+            assertParent(results, Integer.toString(i), Integer.toString(i - 1));
+        }
     }
 
     private void assertNoParent(List<ConnectorObject> results, String uid) {
@@ -62,7 +86,7 @@ public class SameClassAssociationTraversalTest {
     private void assertParent(List<ConnectorObject> results, String uid, String expectedParentUid) {
         ConnectorObject object = object(results, uid);
         Attribute references = object.getAttributeByName("group");
-        Assert.assertNotNull(references);
+        Assert.assertNotNull(references, "Missing group reference for " + uid + " -> " + expectedParentUid);
         Assert.assertEquals(references.getValue().size(), 1);
         ConnectorObjectReference reference = (ConnectorObjectReference) references.getValue().get(0);
         Assert.assertEquals(reference.getValue().getAttributeByName(Uid.NAME), new Uid(expectedParentUid));
