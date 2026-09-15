@@ -1114,10 +1114,10 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 		try (Reader reader = createReader(configuration)) {
 
 			CSVParser parser = csv.parse(reader);
-			boolean shouldReiterate = false;
 			Iterator<CSVRecord> iterator = parser.iterator();
 
 			HashMap <ConnectorObjectId, CandidateSet<ConnectorObjectCandidate>> candidates = new HashMap<>();
+			Map<ConnectorObjectId, ConnectorObjectCandidate> candidatesByOwnId = new HashMap<>();
 			while (iterator.hasNext()) {
 				CSVRecord record = iterator.next();
 				if (skipRecord(record)) {
@@ -1128,15 +1128,9 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 					ConnectorObjectCandidate ob = createConnectorObjectOrCandidateObject(record, false);
 
 						ConnectorObjectId cid =  ob.getId();
+						candidatesByOwnId.put(cid, ob);
 						saturateCandidates(cid, candidates, ob);
-
-						if (!shouldReiterate) {
-
-							shouldReiterate = appendToCandidateMap(ob, candidates, true);
-						} else {
-
-							appendToCandidateMap(ob, candidates, true);
-						}
+						appendToCandidateMap(ob, candidates, true);
 
 				} else {
 					ConnectorObject obj = createConnectorObject(record);
@@ -1147,11 +1141,7 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 			}
 
 			if (!ArrayUtils.isEmpty(configuration.getManagedAssociationPairs())) {
-				if (shouldReiterate) {
-
-					reIterateCandidates(candidates);
-				}
-
+				saturateSameClassCandidates(candidatesByOwnId);
 				retrieveAssociationData(candidates);
 
 				Set<ConnectorObjectCandidate> finalCandidateSet = new HashSet<>();
@@ -1172,6 +1162,21 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 			}
 		} catch (Exception ex) {
 			handleGenericException(ex, "Error during query execution");
+		}
+	}
+
+	private void saturateSameClassCandidates(Map<ConnectorObjectId, ConnectorObjectCandidate> candidatesByOwnId) {
+		for (ConnectorObjectCandidate candidate : candidatesByOwnId.values()) {
+			for (ConnectorObjectId objectId : new HashSet<>(candidate.getObjectIdsToBeProcessed())) {
+				if (!getObjectClass().equals(objectId.getObjectClass())) {
+					continue;
+				}
+
+				ConnectorObjectCandidate referencedCandidate = candidatesByOwnId.get(objectId);
+				if (referencedCandidate != null) {
+					candidate.addCandidateUponWhichThisDepends(referencedCandidate);
+				}
+			}
 		}
 	}
 
