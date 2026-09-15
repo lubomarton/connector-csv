@@ -95,8 +95,8 @@ public class SameClassAssociationTraversalTest {
         assertNoParent(results, "1");
         assertParent(results, "2", "1");
         assertNoParent(results, "100");
-        Assert.assertTrue(candidateConstructions >= records,
-                "Candidate construction count must include at least the initial CSV pass");
+        Assert.assertEquals(candidateConstructions, (long) records,
+                "Same-class query must construct each CSV candidate exactly once");
     }
 
     private void assertChainResolved(String fileName, String content, int levels, String order) throws Exception {
@@ -119,8 +119,8 @@ public class SameClassAssociationTraversalTest {
                 "SAME_CLASS_WORK levels=%d order=%s records=%d candidateConstructions=%d extraCandidateConstructions=%d fullPassEquivalents=%.2f%n",
                 levels, order, levels, candidateConstructions, extraCandidateConstructions, fullPassEquivalents);
 
-        Assert.assertTrue(candidateConstructions >= levels,
-                "Candidate construction count must include at least the initial CSV pass");
+        Assert.assertEquals(candidateConstructions, (long) levels,
+                "Same-class query must construct each CSV candidate exactly once");
         Assert.assertEquals(results.size(), levels);
         assertNoParent(results, "1");
         for (int child = 2; child <= levels; child++) {
