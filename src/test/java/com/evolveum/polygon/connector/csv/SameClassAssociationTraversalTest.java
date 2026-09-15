@@ -2,6 +2,7 @@ package com.evolveum.polygon.connector.csv;
 
 import com.evolveum.polygon.connector.csv.util.AssociationCharacter;
 import com.evolveum.polygon.connector.csv.util.AssociationHolder;
+import com.evolveum.polygon.connector.csv.util.ConnectorObjectCandidate;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
 import org.identityconnectors.framework.common.objects.ConnectorObjectReference;
@@ -27,51 +28,61 @@ public class SameClassAssociationTraversalTest {
     @Test
     public void resolvesTwoLevelSameClassChainInForwardOrder() throws Exception {
         assertChainResolved("same-class-chain-2-forward.csv",
-                "id;memberOf\r\n1;\r\n2;1\r\n", 2);
+                "id;memberOf\r\n1;\r\n2;1\r\n", 2, "forward");
     }
 
     @Test
     public void resolvesTwoLevelSameClassChainInReverseOrder() throws Exception {
         assertChainResolved("same-class-chain-2-reverse.csv",
-                "id;memberOf\r\n2;1\r\n1;\r\n", 2);
+                "id;memberOf\r\n2;1\r\n1;\r\n", 2, "reverse");
     }
 
     @Test
     public void resolvesThreeLevelSameClassChainInForwardOrder() throws Exception {
         assertChainResolved("same-class-chain-3-forward.csv",
-                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n", 3);
+                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n", 3, "forward");
     }
 
     @Test
     public void resolvesThreeLevelSameClassChainInReverseOrder() throws Exception {
         assertChainResolved("same-class-chain-3-reverse.csv",
-                "id;memberOf\r\n3;2\r\n2;1\r\n1;\r\n", 3);
+                "id;memberOf\r\n3;2\r\n2;1\r\n1;\r\n", 3, "reverse");
     }
 
     @Test
     public void resolvesFourLevelSameClassChainInForwardOrder() throws Exception {
         assertChainResolved("same-class-chain-4-forward.csv",
-                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n4;3\r\n", 4);
+                "id;memberOf\r\n1;\r\n2;1\r\n3;2\r\n4;3\r\n", 4, "forward");
     }
 
     @Test
     public void resolvesFourLevelSameClassChainInReverseOrder() throws Exception {
         assertChainResolved("same-class-chain-4-reverse.csv",
-                "id;memberOf\r\n4;3\r\n3;2\r\n2;1\r\n1;\r\n", 4);
+                "id;memberOf\r\n4;3\r\n3;2\r\n2;1\r\n1;\r\n", 4, "reverse");
     }
 
-    private void assertChainResolved(String fileName, String content, int levels) throws Exception {
+    private void assertChainResolved(String fileName, String content, int levels, String order) throws Exception {
         Path path = Path.of("target", fileName);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content);
 
         ObjectClassHandler handler = handler(path);
         List<ConnectorObject> results = new ArrayList<>();
+        ConnectorObjectCandidate.resetConstructionCount();
         handler.executeQuery(GROUP, null, object -> {
             results.add(object);
             return true;
         }, null);
+        long candidateConstructions = ConnectorObjectCandidate.getConstructionCount();
+        long extraCandidateConstructions = candidateConstructions - levels;
+        double fullPassEquivalents = levels == 0 ? 0.0 : (double) candidateConstructions / levels;
 
+        System.out.printf(
+                "SAME_CLASS_WORK levels=%d order=%s records=%d candidateConstructions=%d extraCandidateConstructions=%d fullPassEquivalents=%.2f%n",
+                levels, order, levels, candidateConstructions, extraCandidateConstructions, fullPassEquivalents);
+
+        Assert.assertTrue(candidateConstructions >= levels,
+                "Candidate construction count must include at least the initial CSV pass");
         Assert.assertEquals(results.size(), levels);
         assertNoParent(results, "1");
         for (int child = 2; child <= levels; child++) {
