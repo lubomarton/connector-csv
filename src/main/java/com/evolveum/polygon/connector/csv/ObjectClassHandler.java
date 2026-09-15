@@ -1218,7 +1218,7 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 			if(!shouldReiterate){
 
 				if(getObjectClass().equals(auid.getObjectClass())){
-					if(ob.getId()!=auid){
+					if(!ob.getId().equals(auid)){
 
 					shouldReiterate = true;
 					}
@@ -1280,7 +1280,7 @@ public class ObjectClassHandler implements CreateOp, DeleteOp, TestOp, SearchOp<
 					while (candidateSetIterator.hasNext()) {
 						ConnectorObjectCandidate candidate = (ConnectorObjectCandidate) candidateSetIterator.next();
 
-						if (candidate.getId() == ob.getId()) {
+						if (candidate.getId().equals(ob.getId())) {
 
 							continue;
 						}
