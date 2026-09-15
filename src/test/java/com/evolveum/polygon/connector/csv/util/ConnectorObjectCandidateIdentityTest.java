@@ -104,6 +104,27 @@ public class ConnectorObjectCandidateIdentityTest {
         Assert.assertNotEquals(syncCandidate, queryCandidate);
     }
 
+    @Test
+    public void dependencyDeduplicationRemainsBasedOnLogicalConnectorObjectId() {
+        ConnectorObjectId dependencyId = new ConnectorObjectId("dependency", GROUP);
+        ConnectorObjectCandidate root = candidate(
+                new ConnectorObjectId("root", ACCOUNT), "root-uid", "root",
+                new HashSet<>(Set.of(dependencyId)), new HashSet<>(), Set.of("group"));
+        ConnectorObjectCandidate queryDependency = candidate(
+                dependencyId, "dependency-query", "dependency", Set.of(), Set.of(), Set.of());
+        SyncDeltaObjectCandidate syncDependency = new SyncDeltaObjectCandidate(
+                new ConnectorObjectId("dependency", GROUP),
+                builder(GROUP, "dependency-sync", "dependency"), Set.of(), Set.of(), new SyncToken("token"),
+                SyncDeltaType.CREATE, Set.of(), "group");
+
+        root.addCandidateUponWhichThisDepends(queryDependency);
+        root.addCandidateUponWhichThisDepends(syncDependency);
+
+        Assert.assertTrue(root.complete());
+        Assert.assertNotNull(root.getCandidateBuilder().build().getAttributeByName("group"));
+        Assert.assertEquals(root.getCandidateBuilder().build().getAttributeByName("group").getValue().size(), 1);
+    }
+
     private ConnectorObjectCandidate candidate(ConnectorObjectId id, String uid, String name,
                                                Set<ConnectorObjectId> objectIds,
                                                Set<ConnectorObjectId> subjectIds,

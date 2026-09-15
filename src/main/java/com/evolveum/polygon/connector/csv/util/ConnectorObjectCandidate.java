@@ -11,6 +11,7 @@ public class ConnectorObjectCandidate {
     private ConnectorObjectBuilder candidateBuilder;
     private Set<ConnectorObjectReference> referencedObjects = new HashSet<>();
     private Set<ConnectorObjectCandidate> candidatesUponWhichThisObjectDepends = new HashSet<>();
+    private Set<ConnectorObjectId> candidateIdsUponWhichThisObjectDepends = new HashSet<>();
     private Set<ConnectorObjectId> alreadyProcessedObjectIds = new HashSet<>();
     private Set<ConnectorObjectId> objectIdsToBeProcessed;
     private Set<ConnectorObjectId> subjectIdsToBeProcessed;
@@ -137,11 +138,10 @@ public class ConnectorObjectCandidate {
             return;
         }
 
-        for (ConnectorObjectCandidate currentCandidate : candidatesUponWhichThisObjectDepends) {
-            if (currentCandidate.getId().equals(candidate.getId())) {
-                return;
-            }
+        if (!candidateIdsUponWhichThisObjectDepends.add(candidate.getId())) {
+            return;
         }
+
         candidate.setDepth(getDepth() + 1);
         candidatesUponWhichThisObjectDepends.add(candidate);
     }
