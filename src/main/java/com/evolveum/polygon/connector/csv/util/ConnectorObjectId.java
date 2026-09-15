@@ -7,9 +7,9 @@ import java.util.Set;
 
 public class ConnectorObjectId {
 
-    private String id;
+    private final String id;
     private String idAttributeName;
-    private ObjectClass objectClass;
+    private final ObjectClass objectClass;
     private Set<ObjectClass> relatedObjectClasses;
 
     public ConnectorObjectId(String id, ObjectClass objectClass) {

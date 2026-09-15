@@ -7,7 +7,7 @@ import java.util.*;
 
 public class ConnectorObjectCandidate {
 
-    private ConnectorObjectId id;
+    private final ConnectorObjectId id;
     private ConnectorObjectBuilder candidateBuilder;
     private Set<ConnectorObjectReference> referencedObjects = new HashSet<>();
     private Set<ConnectorObjectCandidate> candidatesUponWhichThisObjectDepends = new HashSet<>();
@@ -204,13 +204,14 @@ public class ConnectorObjectCandidate {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ConnectorObjectCandidate candidate = (ConnectorObjectCandidate) o;
-        return isComplete == candidate.isComplete && Objects.equals(getId(), candidate.getId()) && Objects.equals(getCandidateBuilder(), candidate.getCandidateBuilder()) && Objects.equals(referencedObjects, candidate.referencedObjects) && Objects.equals(candidatesUponWhichThisObjectDepends, candidate.candidatesUponWhichThisObjectDepends) && Objects.equals(getAlreadyProcessedObjectIds(), candidate.getAlreadyProcessedObjectIds()) && Objects.equals(getObjectIdsToBeProcessed(), candidate.getObjectIdsToBeProcessed()) && Objects.equals(getSubjectIdsToBeProcessed(), candidate.getSubjectIdsToBeProcessed()) && Objects.equals(nameAssocAttrDirect, candidate.nameAssocAttrDirect) && Objects.equals(referenceNames, candidate.referenceNames);
+        return Objects.equals(id, candidate.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getCandidateBuilder(), referencedObjects, candidatesUponWhichThisObjectDepends, getAlreadyProcessedObjectIds(), getObjectIdsToBeProcessed(), getSubjectIdsToBeProcessed(), nameAssocAttrDirect, referenceNames, isComplete);
+        return 31 * getClass().hashCode() + Objects.hashCode(id);
     }
 }
