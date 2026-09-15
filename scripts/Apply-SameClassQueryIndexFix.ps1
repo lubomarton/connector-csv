@@ -22,7 +22,7 @@ function Replace-ExactlyOnce([string]$source, [string]$oldValue, [string]$newVal
     $newValue = Normalize-Block $newValue
     $matches = [regex]::Matches($source, [regex]::Escape($oldValue)).Count
     if ($matches -ne 1) {
-        throw "$label: expected exactly one match, found $matches. Refusing to modify the file."
+        throw "${label}: expected exactly one match, found $matches. Refusing to modify the file."
     }
     return $source.Replace($oldValue, $newValue)
 }
